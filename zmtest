@@ -1,0 +1,31 @@
+#!/bin/sh
+
+ZM="/home/mattiasp/zm"
+
+usage_error () {
+    message="$1"
+    echo "$message"
+    exit 2
+}
+
+start_domain_test () {
+    domain="$1"
+    "${ZM}" start_domain_test "$domain" | jq -r .result
+}
+
+test_progress () {
+    testid="$1"
+    "${ZM}" test_progress "$testid" | jq .result
+}
+
+[ $# -ge 1 ] || usage_error "No domain specified"
+domain="$1" ; shift
+
+testid="`start_domain_test "$domain"`"
+while [ `test_progress "$testid"` -ne "100" ] ; do
+    echo -n . >&2
+    sleep 1
+done
+echo
+"${ZM}" get_test_results "$testid"
+echo "testid:" $testid >&2

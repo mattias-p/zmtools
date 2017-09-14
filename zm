@@ -1,0 +1,79 @@
+#!/bin/sh
+
+usage_error () {
+    message="$1"
+    echo "$message"
+    exit 2
+}
+
+send () {
+    json="$1"
+    # echo "$json"
+    # echo "$json" | jq .
+    curl -sS -H "Content-Type: application/json" -d "$json" http://localhost:5000/ | jq -S .
+}
+
+call () {
+    id="$1"
+    method="$2"
+    params="$3"
+    if [ -n "$params" ] ; then
+        params=',"params":'"$params"
+    fi
+    send '{"jsonrpc":"2.0","method":"'"$method"'","id":"'"$id"'"'"$params"'}'
+}
+
+[ $# -ge 1 ] || usage_error "No method specified"
+method="$1" ; shift
+
+case "$method" in
+    bad_method)
+        call 1 $method
+        ;;
+
+    version_info)
+        call 1 $method
+        ;;
+
+    start_domain_test)
+        [ $# -ge 1 ] || usage_error "No domain specified"
+        domain="$1" ; shift
+
+        call 1 $method '{
+            "domain": "'"$domain"'"
+        }'
+        ;;
+
+    test_progress)
+        [ $# -ge 1 ] || usage_error "No testid specified"
+        testid="$1" ; shift
+
+        call 1 $method '"'"$testid"'"'
+        ;;
+
+    get_test_results)
+        [ $# -ge 1 ] || usage_error "No testid specified"
+        testid="$1" ; shift
+
+        call 1 $method '{
+            "id": "'"$testid"'",
+            "language": "en"
+        }'
+        ;;
+
+    get_test_history)
+        [ $# -ge 1 ] || usage_error "No domain specified"
+        domain="$1" ; shift
+
+        call 1 $method '{
+            "frontent_params": {
+                "domain": "'"$domain"'"
+            }
+        }'
+        ;;
+
+    *)
+        echo "Unrecognized method: $method"
+        exit 2;
+        ;;
+esac
