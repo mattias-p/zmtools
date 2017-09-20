@@ -1,6 +1,8 @@
 #!/bin/sh
 
-ZM="/home/mattiasp/zm"
+bindir="`dirname $0`"
+
+ZM="$bindir/zm"
 
 usage_error () {
     message="$1"
@@ -8,24 +10,24 @@ usage_error () {
     exit 2
 }
 
-start_domain_test () {
-    domain="$1"
-    "${ZM}" start_domain_test "$domain" | jq -r .result
-}
-
-test_progress () {
-    testid="$1"
-    "${ZM}" test_progress "$testid" | jq .result
-}
-
 [ $# -ge 1 ] || usage_error "No domain specified"
 domain="$1" ; shift
 
-testid="`start_domain_test "$domain"`"
-while [ `test_progress "$testid"` -ne "100" ] ; do
-    echo -n . >&2
+# Start test
+testid="`"${ZM}" start_domain_test "$domain" | jq -r .result`"
+
+# Wait for test to finish
+while true
+do
+    progress="`"${ZM}" test_progress "$testid" | jq .result`"
+    echo -n "\r$progress% done" >&2
+    if [ "$progress" -eq 100 ] ; then
+        echo
+        break
+    fi
     sleep 1
 done
-echo
+
+# Get test results
 "${ZM}" get_test_results "$testid"
 echo "testid:" $testid >&2
