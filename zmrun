@@ -1,6 +1,0 @@
-#!/bin/sh
-
-/home/mattiasp/local/etc/init.d/zm-backend.sh start
-sleep 1
-"$@"
-/home/mattiasp/local/etc/init.d/zm-backend.sh stop
