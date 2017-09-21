@@ -19,7 +19,7 @@ testid="`"${ZM}" start_domain_test "$domain" | jq -r .result`"
 # Wait for test to finish
 while true
 do
-    progress="`"${ZM}" test_progress "$testid" | jq .result`"
+    progress="`"${ZM}" test_progress "$testid" | jq -r .result`"
     echo -n "\r$progress% done" >&2
     if [ "$progress" -eq 100 ] ; then
         echo
