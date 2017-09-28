@@ -73,7 +73,7 @@ case "$method" in
         ;;
 
     *)
-        echo "Unrecognized method: $method"
+        echo "Unrecognized method: $method" >&2
         exit 2;
         ;;
 esac

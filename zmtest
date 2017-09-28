@@ -6,7 +6,7 @@ ZM="$bindir/zm"
 
 usage_error () {
     message="$1"
-    echo "$message"
+    echo "$message" >&2
     exit 2
 }
 
@@ -22,7 +22,7 @@ do
     progress="`"${ZM}" test_progress "$testid" | jq -r .result`"
     echo -n "\r$progress% done" >&2
     if [ "$progress" -eq 100 ] ; then
-        echo
+        echo >&2
         break
     fi
     sleep 1
