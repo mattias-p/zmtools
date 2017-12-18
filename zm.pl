@@ -130,7 +130,7 @@ sub cmd_get_test_history {
     );
 
     if ( $opt_nameservers ) {
-        $params{frontend_params}{domain} = json_tern($opt_nameservers);
+        $params{frontend_params}{nameservers} = json_tern($opt_nameservers);
     }
 
     if ( defined $opt_offset ) {
