@@ -6,13 +6,14 @@ zm2 - CLI client for Zonemaster::Backend
 
 =head1 SYNOPSIS
 
-zm2 --help|--man
+zm2 --help|--man|--list
 
 zm2 command [command_options]
 
  Options:
    --help     Brief help message
    --man      Full documentation
+   --list     List all commands
    --verbose  Show query
 
 =cut
@@ -34,15 +35,23 @@ sub main {
 
     my $opt_help;
     my $opt_man;
+    my $opt_list;
     my $opt_verbose;
     GetOptionsFromArray(
         \@myopts,
         'help' => \$opt_help,
         'man' => \$opt_man,
+        'list' => \$opt_list,
         'verbose' => \$opt_verbose,
     ) or pod2usage(2);
     pod2usage(1) if $opt_help;
     pod2usage(-verbose => 2) if $opt_man;
+    if ($opt_list) {
+        for my $name ( get_commands() ) {
+            say $name;
+        }
+        return;
+    }
     pod2usage(1) if !@myopts;
 
     my $cmd = shift @myopts;
@@ -137,13 +146,6 @@ sub cmd_get_test_history {
         method => 'get_test_history',
         params => \%params,
     );
-}
-
-sub cmd_list {
-    for my $name ( get_commands() ) {
-        say $name;
-    }
-    return;
 }
 
 sub get_commands {
