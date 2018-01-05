@@ -16,6 +16,24 @@ zm2 command [command_options]
    --list     List all commands
    --verbose  Show query
 
+=head1 COMMANDS
+
+=head2 version_info
+
+=head2 start_domain_test
+
+ Options:
+   --domain DOMAIN_NAME
+   --nameservers DOMAIN_NAME=IP_ADDRESS
+
+=head2 get_test_history
+
+ Options:
+   --domain DOMAIN_NAME
+   --nameservers true|false|null
+   --offset COUNT
+   --limit COUNT
+
 =cut
 
 use strict;
