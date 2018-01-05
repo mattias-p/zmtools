@@ -26,6 +26,12 @@ zm2 command [command_options]
    --domain DOMAIN_NAME
    --nameservers DOMAIN_NAME=IP_ADDRESS
 
+=head2 get_test_results
+
+ Options:
+   --testid TEST_ID
+   --lang LANGUAGE
+
 =head2 get_test_history
 
  Options:
@@ -163,6 +169,27 @@ sub cmd_get_test_history {
         id => 1,
         method => 'get_test_history',
         params => \%params,
+    );
+}
+
+sub cmd_get_test_results {
+    my @opts = @_;
+
+    my $opt_lang;
+    my $opt_testid;
+    GetOptionsFromArray(
+        \@opts,
+        'testid|t=s' => \$opt_testid,
+        'lang|l=s' => \$opt_lang,
+    ) or pod2usage(2);
+
+    return to_jsonrpc(
+        id => 1,
+        method => 'get_test_results',
+        params => {
+            id => $opt_testid,
+            language => $opt_lang,
+        },
     );
 }
 
