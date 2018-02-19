@@ -26,6 +26,11 @@ zm2 command [command_options]
    --domain DOMAIN_NAME
    --nameservers DOMAIN_NAME=IP_ADDRESS
 
+=head2 test_progress
+
+ Options:
+   --testid TEST_ID
+
 =head2 get_test_results
 
  Options:
@@ -190,6 +195,23 @@ sub cmd_get_test_results {
             id => $opt_testid,
             language => $opt_lang,
         },
+    );
+}
+
+sub cmd_test_progress {
+    my @opts = @_;
+
+    my $opt_lang;
+    my $opt_testid;
+    GetOptionsFromArray(
+        \@opts,
+        'testid|t=s' => \$opt_testid,
+    ) or pod2usage(2);
+
+    return to_jsonrpc(
+        id => 1,
+        method => 'test_progress',
+        params => $opt_testid,
     );
 }
 
