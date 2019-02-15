@@ -219,6 +219,7 @@ sub get_commands {
     no strict 'refs';
 
     return
+      sort
       map { $_ =~ s/^cmd_//r }
       grep { $_ =~ /^cmd_/ } grep { defined &{"main\::$_"} } keys %{"main\::"};
 }
