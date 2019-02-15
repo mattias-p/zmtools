@@ -68,38 +68,39 @@ sub main {
     my $opt_verbose;
     GetOptionsFromArray(
         \@myopts,
-        'help' => \$opt_help,
-        'man' => \$opt_man,
-        'list' => \$opt_list,
+        'help'    => \$opt_help,
+        'man'     => \$opt_man,
+        'list'    => \$opt_list,
         'verbose' => \$opt_verbose,
-    ) or pod2usage(2);
-    pod2usage(1) if $opt_help;
-    pod2usage(-verbose => 2) if $opt_man;
-    if ($opt_list) {
+    ) or pod2usage( 2 );
+    pod2usage( 1 ) if $opt_help;
+    pod2usage( -verbose => 2 ) if $opt_man;
+
+    if ( $opt_list ) {
         for my $name ( get_commands() ) {
             say $name;
         }
         return;
     }
-    pod2usage(1) if !@myopts;
+    pod2usage( 1 ) if !@myopts;
 
-    my $cmd = shift @myopts;
+    my $cmd     = shift @myopts;
     my $cmd_sub = \&{ "cmd_" . $cmd };
-    pod2usage("'$cmd' is not a command") if !defined &$cmd_sub;
+    pod2usage( "'$cmd' is not a command" ) if !defined &$cmd_sub;
 
-    my $json = &$cmd_sub(@myopts);
+    my $json = &$cmd_sub( @myopts );
 
-    if ($json) {
+    if ( $json ) {
         say $json if $opt_verbose;
-        my $request = to_request($json);
-        my $response = submit($request);
+        my $request  = to_request( $json );
+        my $response = submit( $request );
         say $response;
     }
 }
 
 sub cmd_version_info {
     return to_jsonrpc(
-        id => 1,
+        id     => 1,
         method => 'version_info',
     );
 }
@@ -111,27 +112,26 @@ sub cmd_start_domain_test {
     my $opt_domain;
     GetOptionsFromArray(
         \@opts,
-        'domain|d=s' => \$opt_domain,
+        'domain|d=s'     => \$opt_domain,
         'nameserver|n=s' => \%opt_nameservers,
-    ) or pod2usage(2);
+    ) or pod2usage( 2 );
 
-    my %params = (
-        domain => $opt_domain,
-    );
+    my %params = ( domain => $opt_domain, );
 
-    if (%opt_nameservers) {
+    if ( %opt_nameservers ) {
         my @nameservers;
         for my $name ( keys %opt_nameservers ) {
-            push @nameservers, {
+            push @nameservers,
+              {
                 ns => $name,
                 ip => $opt_nameservers{$name},
-            };
+              };
         }
         $params{nameservers} = \@nameservers;
     }
 
     return to_jsonrpc(
-        id => 1,
+        id     => 1,
         method => 'start_domain_test',
         params => \%params,
     );
@@ -146,11 +146,11 @@ sub cmd_get_test_history {
 
     GetOptionsFromArray(
         \@opts,
-        'domain|d=s' => \$opt_domain,
+        'domain|d=s'     => \$opt_domain,
         'nameserver|n=s' => \$opt_nameservers,
-        'offset|o=i' => \$opt_offset,
-        'limit|l=i' => \$opt_limit,
-    ) or pod2usage(2);
+        'offset|o=i'     => \$opt_offset,
+        'limit|l=i'      => \$opt_limit,
+    ) or pod2usage( 2 );
 
     my %params = (
         frontend_params => {
@@ -159,7 +159,7 @@ sub cmd_get_test_history {
     );
 
     if ( $opt_nameservers ) {
-        $params{frontend_params}{nameservers} = json_tern($opt_nameservers);
+        $params{frontend_params}{nameservers} = json_tern( $opt_nameservers );
     }
 
     if ( defined $opt_offset ) {
@@ -171,7 +171,7 @@ sub cmd_get_test_history {
     }
 
     return to_jsonrpc(
-        id => 1,
+        id     => 1,
         method => 'get_test_history',
         params => \%params,
     );
@@ -185,14 +185,14 @@ sub cmd_get_test_results {
     GetOptionsFromArray(
         \@opts,
         'testid|t=s' => \$opt_testid,
-        'lang|l=s' => \$opt_lang,
-    ) or pod2usage(2);
+        'lang|l=s'   => \$opt_lang,
+    ) or pod2usage( 2 );
 
     return to_jsonrpc(
-        id => 1,
+        id     => 1,
         method => 'get_test_results',
         params => {
-            id => $opt_testid,
+            id       => $opt_testid,
             language => $opt_lang,
         },
     );
@@ -203,13 +203,11 @@ sub cmd_test_progress {
 
     my $opt_lang;
     my $opt_testid;
-    GetOptionsFromArray(
-        \@opts,
-        'testid|t=s' => \$opt_testid,
-    ) or pod2usage(2);
+    GetOptionsFromArray( \@opts, 'testid|t=s' => \$opt_testid, )
+      or pod2usage( 2 );
 
     return to_jsonrpc(
-        id => 1,
+        id     => 1,
         method => 'test_progress',
         params => $opt_testid,
     );
@@ -218,8 +216,7 @@ sub cmd_test_progress {
 sub get_commands {
     no strict 'refs';
 
-    return
-      sort
+    return sort
       map { $_ =~ s/^cmd_//r }
       grep { $_ =~ /^cmd_/ } grep { defined &{"main\::$_"} } keys %{"main\::"};
 }
@@ -228,37 +225,40 @@ sub json_tern {
     my $value = shift;
     if ( $value eq 'true' ) {
         return JSON::PP::true;
-    } elsif ( $value eq 'false' ) {
+    }
+    elsif ( $value eq 'false' ) {
         return JSON::PP::false;
-    } elsif ( $value eq 'null' ) {
+    }
+    elsif ( $value eq 'null' ) {
         return undef;
-    } else {
+    }
+    else {
         die "unknown ternary value";
     }
 }
 
 sub to_jsonrpc {
-    my %args = @_;
-    my $id = $args{id};
+    my %args   = @_;
+    my $id     = $args{id};
     my $method = $args{method};
 
     my $request = {
         jsonrpc => 2.0,
-        method => $method,
-        id => $id,
+        method  => $method,
+        id      => $id,
     };
-    if (exists $args{params}) {
+    if ( exists $args{params} ) {
         $request->{params} = $args{params};
     }
-    return encode_json($request);
+    return encode_json( $request );
 }
 
 sub to_request {
     my $json = shift;
 
-    my $req = HTTP::Request->new(POST => 'http://localhost:5000/');
-    $req->content_type('application/json');
-    $req->content($json);
+    my $req = HTTP::Request->new( POST => 'http://localhost:5000/' );
+    $req->content_type( 'application/json' );
+    $req->content( $json );
 
     return $req;
 }
@@ -266,14 +266,15 @@ sub to_request {
 sub submit {
     my $req = shift;
 
-    my $ua = LWP::UserAgent->new;
-    my $res = $ua->request($req);
+    my $ua  = LWP::UserAgent->new;
+    my $res = $ua->request( $req );
 
-    if ($res->is_success) {
+    if ( $res->is_success ) {
         return $res->decoded_content;
-    } else {
+    }
+    else {
         die $res->status_line;
     }
 }
 
-main(@ARGV);
+main( @ARGV );
