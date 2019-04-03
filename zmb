@@ -26,10 +26,16 @@ zmb command [command_options]
 
  Options:
    --domain DOMAIN_NAME
-   --nameservers DOMAIN_NAME=IP_ADDRESS
+   --nameserver DOMAIN_NAME:IP_ADDRESS
    --client-id CLIENT_ID
    --client-version CLIENT_VERSION
-   --ds-info DOMAIN_NAME=KEYTAG,ALGO,DIGTYPE,DIGEST
+   --ds-info DS_INFO
+
+ DS_INFO is a comma separated list of key-value pairs. The expected pairs are:
+   * keytag=KEYTAG
+   * algorithm=ALGO
+   * digtype=DIGTYPE
+   * digest=DIGEST
 
 =head2 test_progress
 
@@ -46,7 +52,7 @@ zmb command [command_options]
 
  Options:
    --domain DOMAIN_NAME
-   --nameservers true|false|null
+   --nameserver true|false|null
    --offset COUNT
    --limit COUNT
 
@@ -126,18 +132,18 @@ sub cmd_version_info {
 sub cmd_start_domain_test {
     my @opts = @_;
 
-    my %opt_nameservers;
+    my @opt_nameserver;
     my $opt_domain;
     my $opt_client_id;
     my $opt_client_version;
-    my %opt_ds_info;
+    my @opt_ds_info;
     GetOptionsFromArray(
         \@opts,
-        'domain|d=s'     => \$opt_domain,
-        'nameserver|n=s' => \%opt_nameservers,
-        'client-id=s'  => \$opt_client_id,
-        'client-version=s'  => \$opt_client_version,
-        'ds-info=s' => %opt_ds_info,
+        'domain|d=s'       => \$opt_domain,
+        'nameserver|n=s'   => \@opt_nameserver,
+        'client-id=s'      => \$opt_client_id,
+        'client-version=s' => \$opt_client_version,
+        'ds-info=s'        => \@opt_ds_info,
     ) or pod2usage( 2 );
 
     my %params = ( domain => $opt_domain, );
@@ -150,34 +156,33 @@ sub cmd_start_domain_test {
         $params{client_version} = $opt_client_version,
     }
 
-    if ( %opt_ds_info ) {
-        my @ds_info;
-        for my $name ( sort keys %opt_ds_info ) {
-            my ( $keytag, $algorithm, $digtype, $digest ) = split /,/, $opt_ds_info{$name}, 4;
-            if (!defined $digest || $digest =~ /,/) {
-                die "invalid argument to --ds-info\n";
+    if ( @opt_ds_info ) {
+        my @info_objects;
+        for my $property_value_pairs ( @opt_ds_info ) {
+            my %info_object;
+            for my $pair ( split /,/, $property_value_pairs ) {
+                my ( $property, $value ) = split /=/, $pair;
+                if ( $property =~ /^(?:keytag|algorithm|digtype)$/ ) {
+                    $value = 0 + $value;
+                }
+                $info_object{$property} = $value;
             }
-            push @ds_info,
-              {
-                keytag    => $keytag,
-                algorithm => $algorithm,
-                digtype   => $digtype,
-                digest    => $digest,
-              };
+            push @info_objects, \%info_object;
         }
-        $params{ds_info} = \@ds_info;
+        $params{ds_info} = \@info_objects;
     }
 
-    if ( %opt_nameservers ) {
-        my @nameservers;
-        for my $name ( keys %opt_nameservers ) {
-            push @nameservers,
+    if ( @opt_nameserver ) {
+        my @nameserver_objects;
+        for my $domain_ip_pair ( @opt_nameserver ) {
+            my ( $domain, $ip ) = split /:/, $domain_ip_pair, 2;
+            push @nameserver_objects,
               {
-                ns => $name,
-                ip => $opt_nameservers{$name},
+                ns => $domain,
+                ip => $ip,
               };
         }
-        $params{nameservers} = \@nameservers;
+        $params{nameservers} = \@nameserver_objects;
     }
 
     return to_jsonrpc(
@@ -189,7 +194,7 @@ sub cmd_start_domain_test {
 
 sub cmd_get_test_history {
     my @opts = @_;
-    my $opt_nameservers;
+    my $opt_nameserver;
     my $opt_domain;
     my $opt_offset;
     my $opt_limit;
@@ -197,7 +202,7 @@ sub cmd_get_test_history {
     GetOptionsFromArray(
         \@opts,
         'domain|d=s'     => \$opt_domain,
-        'nameserver|n=s' => \$opt_nameservers,
+        'nameserver|n=s' => \$opt_nameserver,
         'offset|o=i'     => \$opt_offset,
         'limit|l=i'      => \$opt_limit,
     ) or pod2usage( 2 );
@@ -208,8 +213,8 @@ sub cmd_get_test_history {
         },
     );
 
-    if ( $opt_nameservers ) {
-        $params{frontend_params}{nameservers} = json_tern( $opt_nameservers );
+    if ( $opt_nameserver ) {
+        $params{frontend_params}{nameservers} = json_tern( $opt_nameserver );
     }
 
     if ( defined $opt_offset ) {
