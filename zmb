@@ -142,16 +142,12 @@ sub cmd_start_domain_test {
 
     my %params = ( domain => $opt_domain, );
 
-    if ( %opt_nameservers ) {
-        my @nameservers;
-        for my $name ( keys %opt_nameservers ) {
-            push @nameservers,
-              {
-                ns => $name,
-                ip => $opt_nameservers{$name},
-              };
-        }
-        $params{nameservers} = \@nameservers;
+    if ( $opt_client_id ) {
+        $params{client_id} = $opt_client_id,
+    }
+
+    if ( $opt_client_version ) {
+        $params{client_version} = $opt_client_version,
     }
 
     if ( %opt_ds_info ) {
@@ -170,6 +166,18 @@ sub cmd_start_domain_test {
               };
         }
         $params{ds_info} = \@ds_info;
+    }
+
+    if ( %opt_nameservers ) {
+        my @nameservers;
+        for my $name ( keys %opt_nameservers ) {
+            push @nameservers,
+              {
+                ns => $name,
+                ip => $opt_nameservers{$name},
+              };
+        }
+        $params{nameservers} = \@nameservers;
     }
 
     return to_jsonrpc(
