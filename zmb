@@ -2,9 +2,9 @@
 
 =head1 NAME
 
-zmb - A CLI for Zonemaster::Backend
+B<zmb> - Shell bindings for the Zonemaster::Backend RPC API
 
-Zmb is meant to be pronounced I<Simba>.
+Zmb is meant to be pronounced I<Zimba>.
 
 =head1 SYNOPSIS
 
