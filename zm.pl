@@ -98,6 +98,13 @@ sub main {
     }
 }
 
+sub cmd_bad_method {
+    return to_jsonrpc(
+        id     => 1,
+        method => 'bad_method',
+    );
+}
+
 sub cmd_version_info {
     return to_jsonrpc(
         id     => 1,
