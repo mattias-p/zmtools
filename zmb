@@ -27,6 +27,9 @@ zmb command [command_options]
  Options:
    --domain DOMAIN_NAME
    --nameservers DOMAIN_NAME=IP_ADDRESS
+   --client-id CLIENT_ID
+   --client-version CLIENT_VERSION
+   --ds-info DOMAIN_NAME=KEYTAG,ALGO,DIGTYPE,DIGEST
 
 =head2 test_progress
 
@@ -46,6 +49,12 @@ zmb command [command_options]
    --nameservers true|false|null
    --offset COUNT
    --limit COUNT
+
+=head2 add_api_user
+
+ Options:
+   --username USERNAME
+   --api-key API_KEY
 
 =cut
 
@@ -119,10 +128,16 @@ sub cmd_start_domain_test {
 
     my %opt_nameservers;
     my $opt_domain;
+    my $opt_client_id;
+    my $opt_client_version;
+    my %opt_ds_info;
     GetOptionsFromArray(
         \@opts,
         'domain|d=s'     => \$opt_domain,
         'nameserver|n=s' => \%opt_nameservers,
+        'client-id=s'  => \$opt_client_id,
+        'client-version=s'  => \$opt_client_version,
+        'ds-info=s' => %opt_ds_info,
     ) or pod2usage( 2 );
 
     my %params = ( domain => $opt_domain, );
@@ -137,6 +152,24 @@ sub cmd_start_domain_test {
               };
         }
         $params{nameservers} = \@nameservers;
+    }
+
+    if ( %opt_ds_info ) {
+        my @ds_info;
+        for my $name ( sort keys %opt_ds_info ) {
+            my ( $keytag, $algorithm, $digtype, $digest ) = split /,/, $opt_ds_info{$name}, 4;
+            if (!defined $digest || $digest =~ /,/) {
+                die "invalid argument to --ds-info\n";
+            }
+            push @ds_info,
+              {
+                keytag    => $keytag,
+                algorithm => $algorithm,
+                digtype   => $digtype,
+                digest    => $digest,
+              };
+        }
+        $params{ds_info} = \@ds_info;
     }
 
     return to_jsonrpc(
@@ -219,6 +252,27 @@ sub cmd_test_progress {
         id     => 1,
         method => 'test_progress',
         params => $opt_testid,
+    );
+}
+
+sub cmd_add_api_user {
+    my @opts = @_;
+
+    my $opt_username;
+    my $opt_api_key;
+    GetOptionsFromArray(
+        \@opts,
+        'username|u=s' => \$opt_username,
+        'api-key|a=s'  => \$opt_api_key,
+    ) or pod2usage( 2 );
+
+    return to_jsonrpc(
+        id     => 1,
+        method => 'add_api_user',
+        params => {
+            username => $opt_username,
+            api_key  => $opt_api_key,
+        },
     );
 }
 
