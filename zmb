@@ -264,7 +264,9 @@ sub cmd_test_progress {
     return to_jsonrpc(
         id     => 1,
         method => 'test_progress',
-        params => $opt_testid,
+        params => {
+            test_id => $opt_testid,
+        },
     );
 }
 
