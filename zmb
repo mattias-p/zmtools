@@ -2,13 +2,15 @@
 
 =head1 NAME
 
-zm2 - CLI client for Zonemaster::Backend
+zmb - A CLI for Zonemaster::Backend
+
+Zmb is meant to be pronounced I<Simba>.
 
 =head1 SYNOPSIS
 
-zm2 --help|--man|--list
+zmb --help|--man|--list
 
-zm2 command [command_options]
+zmb command [command_options]
 
  Options:
    --help     Brief help message
