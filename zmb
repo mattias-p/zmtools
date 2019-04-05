@@ -1,4 +1,13 @@
 #!/usr/bin/env perl
+use strict;
+use warnings;
+use feature 'say';
+
+use Getopt::Long qw( GetOptionsFromArray :config require_order );
+use Pod::Usage;
+
+use JSON::PP;
+use LWP::UserAgent;
 
 =head1 NAME
 
@@ -18,9 +27,71 @@ zmb command [command_options]
    --list     List all commands
    --verbose  Show query
 
+=cut
+
+sub main {
+    my @argv = @_;
+
+    my $opt_help;
+    my $opt_man;
+    my $opt_list;
+    my $opt_verbose;
+    GetOptionsFromArray(
+        \@argv,
+        'help'    => \$opt_help,
+        'man'     => \$opt_man,
+        'list'    => \$opt_list,
+        'verbose' => \$opt_verbose,
+    ) or pod2usage( 2 );
+    pod2usage( 1 ) if $opt_help;
+    pod2usage( -verbose => 2 ) if $opt_man;
+
+    if ( $opt_list ) {
+        say $_ for get_commands();
+        exit 0;
+    }
+    pod2usage( 1 )  if !@argv;
+
+    my $cmd     = shift @argv;
+    my $cmd_sub = \&{ "cmd_" . $cmd };
+    pod2usage( "'$cmd' is not a command" ) if !defined &$cmd_sub;
+
+    my $json = &$cmd_sub( @argv );
+
+    if ( $json ) {
+        say $json if $opt_verbose;
+        my $request  = to_request( $json );
+        my $response = submit( $request );
+        say $response;
+    }
+}
+
+
 =head1 COMMANDS
 
+=head2 bad_method
+
+=cut
+
+sub cmd_bad_method {
+    return to_jsonrpc(
+        id     => 1,
+        method => 'bad_method',
+    );
+}
+
+
 =head2 version_info
+
+=cut
+
+sub cmd_version_info {
+    return to_jsonrpc(
+        id     => 1,
+        method => 'version_info',
+    );
+}
+
 
 =head2 start_domain_test
 
@@ -37,97 +108,7 @@ zmb command [command_options]
    * digtype=DIGTYPE
    * digest=DIGEST
 
-=head2 test_progress
-
- Options:
-   --testid TEST_ID
-
-=head2 get_test_results
-
- Options:
-   --testid TEST_ID
-   --lang LANGUAGE
-
-=head2 get_test_history
-
- Options:
-   --domain DOMAIN_NAME
-   --nameserver true|false|null
-   --offset COUNT
-   --limit COUNT
-
-=head2 add_api_user
-
- Options:
-   --username USERNAME
-   --api-key API_KEY
-
 =cut
-
-use strict;
-use warnings;
-use feature 'say';
-
-use Getopt::Long qw( GetOptionsFromArray :config require_order );
-use Pod::Usage;
-
-use JSON::PP;
-use LWP::UserAgent;
-
-my @myopts = @ARGV;
-
-sub main {
-    my @myopts = @_;
-
-    my $opt_help;
-    my $opt_man;
-    my $opt_list;
-    my $opt_verbose;
-    GetOptionsFromArray(
-        \@myopts,
-        'help'    => \$opt_help,
-        'man'     => \$opt_man,
-        'list'    => \$opt_list,
-        'verbose' => \$opt_verbose,
-    ) or pod2usage( 2 );
-    pod2usage( 1 ) if $opt_help;
-    pod2usage( -verbose => 2 ) if $opt_man;
-
-    if ( $opt_list ) {
-        for my $name ( get_commands() ) {
-            say $name;
-        }
-        return;
-    }
-    pod2usage( 1 ) if !@myopts;
-
-    my $cmd     = shift @myopts;
-    my $cmd_sub = \&{ "cmd_" . $cmd };
-    pod2usage( "'$cmd' is not a command" ) if !defined &$cmd_sub;
-
-    my $json = &$cmd_sub( @myopts );
-
-    if ( $json ) {
-        say $json if $opt_verbose;
-        my $request  = to_request( $json );
-        my $response = submit( $request );
-        say $response;
-    }
-}
-
-sub cmd_bad_method {
-    return to_jsonrpc(
-        id     => 1,
-        method => 'bad_method',
-    );
-}
-
-sub cmd_version_info {
-    return to_jsonrpc(
-        id     => 1,
-        method => 'version_info',
-    );
-}
 
 sub cmd_start_domain_test {
     my @opts = @_;
@@ -192,6 +173,72 @@ sub cmd_start_domain_test {
     );
 }
 
+
+=head2 test_progress
+
+ Options:
+   --testid TEST_ID
+
+=cut
+
+sub cmd_test_progress {
+    my @opts = @_;
+
+    my $opt_lang;
+    my $opt_testid;
+    GetOptionsFromArray( \@opts, 'testid|t=s' => \$opt_testid, )
+      or pod2usage( 2 );
+
+    return to_jsonrpc(
+        id     => 1,
+        method => 'test_progress',
+        params => {
+            test_id => $opt_testid,
+        },
+    );
+}
+
+
+=head2 get_test_results
+
+ Options:
+   --testid TEST_ID
+   --lang LANGUAGE
+
+=cut
+
+sub cmd_get_test_results {
+    my @opts = @_;
+
+    my $opt_lang;
+    my $opt_testid;
+    GetOptionsFromArray(
+        \@opts,
+        'testid|t=s' => \$opt_testid,
+        'lang|l=s'   => \$opt_lang,
+    ) or pod2usage( 2 );
+
+    return to_jsonrpc(
+        id     => 1,
+        method => 'get_test_results',
+        params => {
+            id       => $opt_testid,
+            language => $opt_lang,
+        },
+    );
+}
+
+
+=head2 get_test_history
+
+ Options:
+   --domain DOMAIN_NAME
+   --nameserver true|false|null
+   --offset COUNT
+   --limit COUNT
+
+=cut
+
 sub cmd_get_test_history {
     my @opts = @_;
     my $opt_nameserver;
@@ -232,43 +279,14 @@ sub cmd_get_test_history {
     );
 }
 
-sub cmd_get_test_results {
-    my @opts = @_;
 
-    my $opt_lang;
-    my $opt_testid;
-    GetOptionsFromArray(
-        \@opts,
-        'testid|t=s' => \$opt_testid,
-        'lang|l=s'   => \$opt_lang,
-    ) or pod2usage( 2 );
+=head2 add_api_user
 
-    return to_jsonrpc(
-        id     => 1,
-        method => 'get_test_results',
-        params => {
-            id       => $opt_testid,
-            language => $opt_lang,
-        },
-    );
-}
+ Options:
+   --username USERNAME
+   --api-key API_KEY
 
-sub cmd_test_progress {
-    my @opts = @_;
-
-    my $opt_lang;
-    my $opt_testid;
-    GetOptionsFromArray( \@opts, 'testid|t=s' => \$opt_testid, )
-      or pod2usage( 2 );
-
-    return to_jsonrpc(
-        id     => 1,
-        method => 'test_progress',
-        params => {
-            test_id => $opt_testid,
-        },
-    );
-}
+=cut
 
 sub cmd_add_api_user {
     my @opts = @_;
