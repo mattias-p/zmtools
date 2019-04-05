@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use feature 'say';
 
-use Getopt::Long qw( GetOptionsFromArray :config require_order );
+use Getopt::Long qw( GetOptionsFromArray );
 use Pod::Usage;
 
 use JSON::PP;
@@ -17,15 +17,12 @@ Zmb is meant to be pronounced I<Zimba>.
 
 =head1 SYNOPSIS
 
-zmb --help|--man|--list
+zmb COMMAND [OPTIONS]
 
-zmb command [command_options]
+=head1 GLOBAL OPTIONS
 
- Options:
-   --help     Brief help message
-   --man      Full documentation
-   --list     List all commands
-   --verbose  Show query
+ --help        Show usage
+ --verbose     Show RPC query
 
 =cut
 
@@ -33,28 +30,22 @@ sub main {
     my @argv = @_;
 
     my $opt_help;
-    my $opt_man;
-    my $opt_list;
     my $opt_verbose;
     GetOptionsFromArray(
         \@argv,
         'help'    => \$opt_help,
-        'man'     => \$opt_man,
-        'list'    => \$opt_list,
         'verbose' => \$opt_verbose,
     ) or pod2usage( 2 );
-    pod2usage( 1 ) if $opt_help;
-    pod2usage( -verbose => 2 ) if $opt_man;
-
-    if ( $opt_list ) {
-        say $_ for get_commands();
-        exit 0;
+    if ( !@argv ) {
+        pod2usage( -verbose => 99, -sections => ['SYNOPSIS', 'GLOBAL OPTIONS'], -exitval => 'NOEXIT' );
+        show_commands();
+        exit 1;
     }
-    pod2usage( 1 )  if !@argv;
-
-    my $cmd     = shift @argv;
+    my $cmd = shift @argv;
+    pod2usage( 1 ) if !defined $cmd;
     my $cmd_sub = \&{ "cmd_" . $cmd };
     pod2usage( "'$cmd' is not a command" ) if !defined &$cmd_sub;
+    pod2usage( -verbose => 99, -sections => ["COMMANDS/$cmd"] ) if $opt_help;
 
     my $json = &$cmd_sub( @argv );
 
@@ -69,19 +60,38 @@ sub main {
 
 =head1 COMMANDS
 
-=head2 bad_method
+=head2 man
+
+Show the full manual page.
+
+    zmb man
 
 =cut
 
-sub cmd_bad_method {
+sub cmd_man {
+    pod2usage( -verbose => 2 );
+}
+
+
+=head2 non_existing_method
+
+Call a non-existing RPC method.
+
+    zmb non_existing_method
+
+=cut
+
+sub cmd_non_existing_method {
     return to_jsonrpc(
         id     => 1,
-        method => 'bad_method',
+        method => 'non_existing_method',
     );
 }
 
 
 =head2 version_info
+
+    zmb version_info
 
 =cut
 
@@ -95,18 +105,24 @@ sub cmd_version_info {
 
 =head2 start_domain_test
 
- Options:
-   --domain DOMAIN_NAME
-   --nameserver DOMAIN_NAME:IP_ADDRESS
-   --client-id CLIENT_ID
-   --client-version CLIENT_VERSION
-   --ds-info DS_INFO
+Call start_domain_test.
 
- DS_INFO is a comma separated list of key-value pairs. The expected pairs are:
-   * keytag=KEYTAG
-   * algorithm=ALGO
-   * digtype=DIGTYPE
-   * digest=DIGEST
+    zmb start_domain_test [OPTIONS]
+
+Options:
+
+    --domain DOMAIN_NAME
+    --nameserver DOMAIN_NAME:IP_ADDRESS
+    --client-id CLIENT_ID
+    --client-version CLIENT_VERSION
+    --ds-info DS_INFO
+
+DS_INFO is a comma separated list of key-value pairs. The expected pairs are:
+
+    keytag=UNSIGNED_INTEGER
+    algorithm=UNSIGNED_INTEGER
+    digtype=UNSIGNED_INTEGER
+    digest=HEX_STRING
 
 =cut
 
@@ -176,6 +192,8 @@ sub cmd_start_domain_test {
 
 =head2 test_progress
 
+ zmb test_progress [OPTIONS]
+
  Options:
    --testid TEST_ID
 
@@ -200,6 +218,8 @@ sub cmd_test_progress {
 
 
 =head2 get_test_results
+
+ zmb get_test_results [OPTIONS]
 
  Options:
    --testid TEST_ID
@@ -230,6 +250,8 @@ sub cmd_get_test_results {
 
 
 =head2 get_test_history
+
+ zmb get_test_history [OPTIONS]
 
  Options:
    --domain DOMAIN_NAME
@@ -282,6 +304,8 @@ sub cmd_get_test_history {
 
 =head2 add_api_user
 
+ zmb add_api_user [OPTIONS]
+
  Options:
    --username USERNAME
    --api-key API_KEY
@@ -308,6 +332,29 @@ sub cmd_add_api_user {
         },
     );
 }
+
+
+sub show_commands {
+    my %specials = (
+        man                 => 'Show the full manual page.',
+        non_existing_method => 'Call a non-existing RPC method.',
+    );
+    my @commands  = get_commands();
+    my $max_width = 0;
+    for my $command ( @commands ) {
+        $max_width = length $command if length $command > $max_width;
+    }
+    say "Commands:";
+    for my $command ( @commands ) {
+        if ( exists $specials{$command} ) {
+            printf "     %-*s     %s\n", $max_width, $command, $specials{$command};
+        }
+        else {
+            say "     ", $command;
+        }
+    }
+}
+
 
 sub get_commands {
     no strict 'refs';
