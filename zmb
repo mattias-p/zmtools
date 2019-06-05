@@ -3,7 +3,8 @@ use strict;
 use warnings;
 use feature 'say';
 
-use Getopt::Long qw( GetOptionsFromArray );
+use Getopt::Long qw( GetOptionsFromArray :config require_order );
+
 use Pod::Usage;
 
 use JSON::PP;
