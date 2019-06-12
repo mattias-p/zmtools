@@ -33,7 +33,7 @@ testid="`zmb start_domain_test --domain "$domain" | jq -r .result`" || exit 1
 while true
 do
     progress="`zmb test_progress --testid "$testid" | jq -r .result`" || exit 1
-    echo -n "\r$progress% done" >&2
+    printf "\r$progress%% done" >&2
     if [ "$progress" -eq 100 ] ; then
         echo >&2
         break
