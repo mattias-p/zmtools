@@ -3,8 +3,9 @@
 bindir="`dirname $0`"
 
 ZMB="$bindir/zmb"
+JQ="`which jq`"
 
-usage_error () {
+error () {
     message="$1"
     echo "$message" >&2
     exit 2
@@ -20,7 +21,9 @@ zmb () {
     fi
 }
 
-[ $# -ge 1 ] || usage_error "No domain specified"
+[ -n "${JQ}" ] || error "Dependency not found: jq"
+
+[ $# -ge 1 ] || error "No domain specified"
 domain="$1" ; shift
 
 # Start test
